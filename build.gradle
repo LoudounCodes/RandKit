@@ -27,3 +27,9 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+tasks.register('copyJavadoc', Copy) {
+    dependsOn tasks.javadoc
+    from("$buildDir/docs/javadoc")
+    into("$projectDir/docs/javadoc")
+}
