@@ -1,0 +1,50 @@
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+
+# ---- Java / Gradle build output ----
+/build/
+/out/
+/bin/
+/dist/
+/target/
+*.class
+*.log
+
+# Gradle local state
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Test reports & coverage
+*/build/reports/
+*/build/test-results/
+.jacoco/
+*.exec
+
+# IDEs
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+
+# VS Code
+.vscode/
+
+# Annotation processors / generated sources (when outside build/)
+.apt_generated/
+generated/
+
+# Misc
+hs_err_pid*
+replay_pid*
+*.swp
+*.swo
+
