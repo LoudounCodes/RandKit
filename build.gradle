@@ -16,6 +16,13 @@ java {
     withJavadocJar()
 }
 
+tasks.javadoc {
+    // Fail the build on any Javadoc warning
+    options.addBooleanOption('Werror', true)
+    // Turn on all doclint checks (syntax, reference, html, accessibility, missing, etc.)
+    options.addStringOption('Xdoclint:all', '-quiet')
+}
+
 repositories { mavenCentral() }
 
 dependencies {
