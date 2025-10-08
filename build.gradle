@@ -16,13 +16,6 @@ java {
     withJavadocJar()
 }
 
-tasks.javadoc {
-    // Fail the build on any Javadoc warning
-    options.addBooleanOption('Werror', true)
-    // Turn on all doclint checks (syntax, reference, html, accessibility, missing, etc.)
-    options.addStringOption('Xdoclint:all', '-quiet')
-}
-
 repositories { mavenCentral() }
 
 dependencies {
@@ -48,36 +41,33 @@ spotless {
     }
 }
 
-jacoco {
-    toolVersion = '0.8.12'
-}
+jacoco { toolVersion = '0.8.12' }
 
 tasks.jacocoTestReport {
     dependsOn tasks.test
     reports {
-        html.required = true    // build/reports/jacoco/test/html/index.html
+        html.required = true
         xml.required  = true
         csv.required  = false
     }
 }
 
-// Configure existing verification task (strings are the safe tokens)
+// Coverage gate (strings are the stable tokens)
 tasks.named('jacocoTestCoverageVerification', JacocoCoverageVerification).configure {
     dependsOn tasks.test
     violationRules {
         rule {
             limit {
-                counter = 'INSTRUCTION'   // or 'BRANCH' / 'LINE'
+                counter = 'INSTRUCTION'
                 value   = 'COVEREDRATIO'
                 minimum = 0.80
             }
         }
     }
 }
-
 check.dependsOn 'jacocoTestCoverageVerification'
 
-// ---- PMD (show metrics/violations; do not fail the build) ----
+// PMD (show violations, don’t fail)
 pmd {
     consoleOutput = true
     incrementalAnalysis = true
@@ -89,45 +79,61 @@ pmd {
 }
 tasks.withType(Pmd).configureEach {
     reports {
-        html.required = true    // build/reports/pmd/main.html, test.html
+        html.required = true
         xml.required = false
     }
 }
 
-// ---- Docs helpers: publish reports to GitHub Pages (docs/) ----
+// ---- Strict Javadoc + links to Java 17 API
+tasks.javadoc {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.addBooleanOption('Xdoclint:all', true)
+    options.addBooleanOption('Werror', true)
+    options.links('https://docs.oracle.com/en/java/javase/17/docs/api/')
+}
 
-// Copy Javadoc to docs/javadoc (optional)
-tasks.register('copyJavadoc', Copy) {
+// ---- Publish HTML artifacts to docs/ (for GitHub Pages)
+
+// Make these destinations explicit, so Gradle always knows the outputs:
+def docsDir             = layout.projectDirectory.dir("docs")
+def docsReportsTests    = docsDir.dir("reports/tests")
+def docsReportsCoverage = docsDir.dir("reports/coverage")
+def docsReportsPmd      = docsDir.dir("reports/pmd")
+def docsJavadoc         = docsDir.dir("javadoc")
+
+// Copy Javadoc -> docs/javadoc/
+tasks.register('copyJavadoc', Sync) {
     dependsOn tasks.javadoc
     from(layout.buildDirectory.dir("docs/javadoc"))
-    into(layout.projectDirectory.dir("docs/javadoc"))
+    into(docsJavadoc)
 }
 
 // Gradle test report -> docs/reports/tests/
 tasks.register('publishTestReport', Sync) {
     dependsOn tasks.test
     from(layout.buildDirectory.dir("reports/tests/test"))
-    into(layout.projectDirectory.dir("docs/reports/tests"))
+    into(docsReportsTests)
 }
 
 // JaCoCo HTML -> docs/reports/coverage/
 tasks.register('publishCoverageReport', Sync) {
     dependsOn tasks.jacocoTestReport
     from(layout.buildDirectory.dir("reports/jacoco/test/html"))
-    into(layout.projectDirectory.dir("docs/reports/coverage"))
+    into(docsReportsCoverage)
 }
 
 // PMD HTML -> docs/reports/pmd/
 tasks.register('publishPmdReports', Sync) {
     dependsOn tasks.pmdMain, tasks.pmdTest
     from(layout.buildDirectory.dir("reports/pmd"))
-    into(layout.projectDirectory.dir("docs/reports/pmd"))
+    into(docsReportsPmd)
 }
 
-// Aggregate publisher (no index.html generation)
+// Aggregate publisher (now includes Javadoc!)
 tasks.register('publishReports') {
-    dependsOn 'publishTestReport', 'publishCoverageReport', 'publishPmdReports'
+    dependsOn 'publishTestReport', 'publishCoverageReport', 'publishPmdReports', 'copyJavadoc'
 }
 
-// Keep Pages current after every build
+// Always publish after a build
 build.finalizedBy tasks.named('publishReports')
