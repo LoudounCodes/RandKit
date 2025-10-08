@@ -3,17 +3,17 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta http-equiv="x-ua-compatible" content="IE=edge"/>
-<title>Test results - RandomsTest</title>
+<title>Test results - NormalIntTest</title>
 <link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
 <link href="../css/style.css" rel="stylesheet" type="text/css"/>
 <script src="../js/report.js" type="text/javascript"></script>
 </head>
 <body>
 <div id="content">
-<h1>RandomsTest</h1>
+<h1>NormalIntTest</h1>
 <div class="breadcrumbs">
 <a href="../index.html">all</a> &gt; 
-<a href="../packages/org.loudouncodes.randkit.util.html">org.loudouncodes.randkit.util</a> &gt; RandomsTest</div>
+<a href="../packages/org.loudouncodes.randkit.discrete.html">org.loudouncodes.randkit.discrete</a> &gt; NormalIntTest</div>
 <div id="summary">
 <table>
 <tr>
@@ -23,7 +23,7 @@
 <tr>
 <td>
 <div class="infoBox" id="tests">
-<div class="counter">3</div>
+<div class="counter">8</div>
 <p>tests</p>
 </div>
 </td>
@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">0.005s</div>
+<div class="counter">0.032s</div>
 <p>duration</p>
 </div>
 </td>
@@ -76,21 +76,51 @@
 </tr>
 </thead>
 <tr>
-<td class="success">defaultGenerator returns a usable RandomGenerator</td>
-<td class="success">defaultGeneratorWorks()</td>
-<td class="success">0s</td>
-<td class="success">passed</td>
-</tr>
-<tr>
-<td class="success">seeded: different seeds -&gt; sequences differ</td>
-<td class="success">differentSeedsDiffer()</td>
+<td class="success">CDF/PMF consistency: CDF(k) ≈ sum_{i&lt;=k} PMF(i)</td>
+<td class="success">cdfMatchesPmfSum()</td>
 <td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
-<td class="success">seeded: same seed -&gt; identical sequence</td>
-<td class="success">seededDeterminism()</td>
-<td class="success">0.004s</td>
+<td class="success">Constructor validation: sigma &gt; 0, finite params, truncation bounds</td>
+<td class="success">constructorValidation()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Determinism by seed: same seed -&gt; identical sequence</td>
+<td class="success">determinismBySeed()</td>
+<td class="success">0.003s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Monte Carlo moments track mean() and variance()</td>
+<td class="success">monteCarloMoments()</td>
+<td class="success">0.012s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">PMF non-negative, sum to ~1 over a wide window; CDF monotone in [0,1]</td>
+<td class="success">pmfCdfProperties()</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Symmetry: for integer mean, pmf is (approximately) symmetric</td>
+<td class="success">symmetryAroundIntegerMean()</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Truncated: sum of PMF over [lower, upper] is 1</td>
+<td class="success">truncatedMassIsOne()</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">Truncation: samples stay within [lower, upper], CDF clamps to 0/1</td>
+<td class="success">truncationBounds()</td>
+<td class="success">0.010s</td>
 <td class="success">passed</td>
 </tr>
 </table>
