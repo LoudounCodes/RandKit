@@ -85,35 +85,35 @@ public final class NormalInt implements DiscreteDistribution {
   private final int upper;
   private final double normZ; // normalization constant for truncated mass
   private final boolean degenerate; // when truncation window has ~zero mass
-<span class="fc" id="L88">  private final int degenerateValue;</span>
-<span class="fc" id="L89"></span>
+  private final int degenerateValue;
+
   // Cached moments reported by the API.
-<span class="fc" id="L91">  private final double meanCached;</span>
+  private final double meanCached;
   private final double varianceCached;
 
   // Box–Muller (polar) spare sample caching.
-  private boolean haveSpare = false;
-  private double spare = 0.0;
+<span class="fc" id="L95">  private boolean haveSpare = false;</span>
+<span class="fc" id="L96">  private double spare = 0.0;</span>
 
-  private static final double INV_SQRT2 = 1.0 / Math.sqrt(2.0);
+<span class="fc" id="L98">  private static final double INV_SQRT2 = 1.0 / Math.sqrt(2.0);</span>
 
   // ---------- Constructors (untruncated) ----------
 
   /**
-<span class="nc" id="L103">   * Creates an untruncated discrete normal using the library's default RNG.</span>
-<span class="nc" id="L104">   *</span>
+   * Creates an untruncated discrete normal using the library's default RNG.
+   *
    * @param mean the mean {@code μ} of the underlying continuous normal (finite)
    * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
    * @throws IllegalArgumentException if {@code mean} is not finite or {@code sigma &lt;= 0} or not
    *     finite
    */
   public NormalInt(double mean, double sigma) {
-    this(Randoms.defaultGenerator(), mean, sigma);
-  }
+<span class="nc" id="L111">    this(Randoms.defaultGenerator(), mean, sigma);</span>
+<span class="nc" id="L112">  }</span>
 
   /**
-<span class="fc" id="L115">   * Creates an untruncated discrete normal with a deterministic RNG built from {@code seed}.</span>
-<span class="fc" id="L116">   *</span>
+   * Creates an untruncated discrete normal with a deterministic RNG built from {@code seed}.
+   *
    * @param seed RNG seed for reproducible sampling
    * @param mean the mean {@code μ} of the underlying continuous normal (finite)
    * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
@@ -121,44 +121,44 @@ public final class NormalInt implements DiscreteDistribution {
    *     finite
    */
   public NormalInt(long seed, double mean, double sigma) {
-    this(Randoms.seeded(seed), mean, sigma);
-  }
+<span class="fc" id="L124">    this(Randoms.seeded(seed), mean, sigma);</span>
+<span class="fc" id="L125">  }</span>
 
-<span class="fc" id="L127">  /**</span>
-<span class="fc" id="L128">   * Creates an untruncated discrete normal with a caller-supplied RNG.</span>
-<span class="pc bpc" id="L129" title="1 of 2 branches missed.">   *</span>
+  /**
+   * Creates an untruncated discrete normal with a caller-supplied RNG.
+   *
    * @param rng the random generator (must not be {@code null})
-<span class="fc" id="L131">   * @param mean the mean {@code μ} of the underlying continuous normal (finite)</span>
-<span class="fc" id="L132">   * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}</span>
-<span class="fc" id="L133">   * @throws NullPointerException if {@code rng} is {@code null}</span>
+   * @param mean the mean {@code μ} of the underlying continuous normal (finite)
+   * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
+   * @throws NullPointerException if {@code rng} is {@code null}
    * @throws IllegalArgumentException if {@code mean} is not finite or {@code sigma &lt;= 0} or not
-<span class="fc" id="L135">   *     finite</span>
-<span class="fc" id="L136">   */</span>
+   *     finite
+   */
 <span class="fc" id="L137">  public NormalInt(RandomGenerator rng, double mean, double sigma) {</span>
 <span class="fc" id="L138">    validateParams(mean, sigma);</span>
-<span class="fc" id="L139">    if (rng == null) throw new NullPointerException(&quot;rng must not be null&quot;);</span>
-<span class="fc" id="L140"></span>
-    this.rng = rng;
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">    if (rng == null) throw new NullPointerException(&quot;rng must not be null&quot;);</span>
+
+<span class="fc" id="L141">    this.rng = rng;</span>
 <span class="fc" id="L142">    this.meanParam = mean;</span>
 <span class="fc" id="L143">    this.sigma = sigma;</span>
-<span class="fc" id="L144"></span>
-<span class="fc" id="L145">    this.truncated = false;</span>
-    this.lower = Integer.MIN_VALUE;
-    this.upper = Integer.MAX_VALUE;
-    this.normZ = 1.0;
-    this.degenerate = false;
-    this.degenerateValue = (int) Math.rint(meanParam);
 
-    double[] m = computeUntruncatedMoments();
-    this.meanCached = m[0];
-    this.varianceCached = m[1];
-  }
+<span class="fc" id="L145">    this.truncated = false;</span>
+<span class="fc" id="L146">    this.lower = Integer.MIN_VALUE;</span>
+<span class="fc" id="L147">    this.upper = Integer.MAX_VALUE;</span>
+<span class="fc" id="L148">    this.normZ = 1.0;</span>
+<span class="fc" id="L149">    this.degenerate = false;</span>
+<span class="fc" id="L150">    this.degenerateValue = (int) Math.rint(meanParam);</span>
+
+<span class="fc" id="L152">    double[] m = computeUntruncatedMoments();</span>
+<span class="fc" id="L153">    this.meanCached = m[0];</span>
+<span class="fc" id="L154">    this.varianceCached = m[1];</span>
+<span class="fc" id="L155">  }</span>
 
   // ---------- Constructors (truncated) ----------
 
   /**
-<span class="nc" id="L160">   * Creates a truncated discrete normal on the closed interval {@code [lower, upper]} using the</span>
-<span class="nc" id="L161">   * library's default RNG. Mass is re-normalized to the interval.</span>
+   * Creates a truncated discrete normal on the closed interval {@code [lower, upper]} using the
+   * library's default RNG. Mass is re-normalized to the interval.
    *
    * @param mean the mean {@code μ} of the underlying continuous normal (finite)
    * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
@@ -167,12 +167,12 @@ public final class NormalInt implements DiscreteDistribution {
    * @throws IllegalArgumentException if parameters are invalid or {@code lower &gt; upper}
    */
   public NormalInt(double mean, double sigma, int lower, int upper) {
-    this(Randoms.defaultGenerator(), mean, sigma, lower, upper);
-  }
+<span class="nc" id="L170">    this(Randoms.defaultGenerator(), mean, sigma, lower, upper);</span>
+<span class="nc" id="L171">  }</span>
 
   /**
-<span class="fc" id="L174">   * Creates a truncated discrete normal on {@code [lower, upper]} with a deterministic RNG.</span>
-<span class="fc" id="L175">   *</span>
+   * Creates a truncated discrete normal on {@code [lower, upper]} with a deterministic RNG.
+   *
    * @param seed RNG seed for reproducible sampling
    * @param mean the mean {@code μ} of the underlying continuous normal (finite)
    * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
@@ -181,126 +181,126 @@ public final class NormalInt implements DiscreteDistribution {
    * @throws IllegalArgumentException if parameters are invalid or {@code lower &gt; upper}
    */
   public NormalInt(long seed, double mean, double sigma, int lower, int upper) {
-    this(Randoms.seeded(seed), mean, sigma, lower, upper);
-  }
+<span class="fc" id="L184">    this(Randoms.seeded(seed), mean, sigma, lower, upper);</span>
+<span class="fc" id="L185">  }</span>
 
   /**
-<span class="fc" id="L188">   * Creates a truncated discrete normal on {@code [lower, upper]} with a caller-supplied RNG.</span>
-<span class="fc" id="L189">   *</span>
-<span class="pc bpc" id="L190" title="1 of 2 branches missed.">   * @param rng the random generator (must not be {@code null})</span>
-<span class="fc bfc" id="L191" title="All 2 branches covered.">   * @param mean the mean {@code μ} of the underlying continuous normal (finite)</span>
-<span class="fc" id="L192">   * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}</span>
+   * Creates a truncated discrete normal on {@code [lower, upper]} with a caller-supplied RNG.
+   *
+   * @param rng the random generator (must not be {@code null})
+   * @param mean the mean {@code μ} of the underlying continuous normal (finite)
+   * @param sigma the standard deviation {@code σ} of the underlying normal; must be {@code &gt; 0}
    * @param lower inclusive lower bound for the integer outcomes
    * @param upper inclusive upper bound for the integer outcomes; must be {@code &gt;= lower}
    * @throws NullPointerException if {@code rng} is {@code null}
-<span class="fc" id="L196">   * @throws IllegalArgumentException if parameters are invalid or {@code lower &gt; upper}</span>
-<span class="fc" id="L197">   */</span>
+   * @throws IllegalArgumentException if parameters are invalid or {@code lower &gt; upper}
+   */
 <span class="fc" id="L198">  public NormalInt(RandomGenerator rng, double mean, double sigma, int lower, int upper) {</span>
 <span class="fc" id="L199">    validateParams(mean, sigma);</span>
-<span class="fc" id="L200">    if (rng == null) throw new NullPointerException(&quot;rng must not be null&quot;);</span>
-<span class="fc" id="L201">    if (lower &gt; upper) {</span>
-      throw new IllegalArgumentException(
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">    if (rng == null) throw new NullPointerException(&quot;rng must not be null&quot;);</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (lower &gt; upper) {</span>
+<span class="fc" id="L202">      throw new IllegalArgumentException(</span>
           &quot;lower must be &lt;= upper (got &quot; + lower + &quot; &gt; &quot; + upper + &quot;)&quot;);
     }
-<span class="fc" id="L205"></span>
+
 <span class="fc" id="L206">    this.rng = rng;</span>
 <span class="fc" id="L207">    this.meanParam = mean;</span>
 <span class="fc" id="L208">    this.sigma = sigma;</span>
-    this.truncated = true;
-<span class="pc bpc" id="L210" title="1 of 2 branches missed.">    this.lower = lower;</span>
-    this.upper = upper;
+<span class="fc" id="L209">    this.truncated = true;</span>
+<span class="fc" id="L210">    this.lower = lower;</span>
+<span class="fc" id="L211">    this.upper = upper;</span>
 
-<span class="nc" id="L213">    // Normalization mass over the truncated support:</span>
-<span class="nc" id="L214">    // Z = P(Y in [lower, upper]) = Φ(upper+0.5) - Φ(lower-0.5)</span>
-<span class="nc bnc" id="L215" title="All 2 branches missed.">    double zUpper = normalCdf(upper + 0.5);</span>
-<span class="nc bnc" id="L216" title="All 2 branches missed.">    double zLower = normalCdf(lower - 0.5);</span>
-<span class="nc" id="L217">    double z = zUpper - zLower;</span>
-<span class="nc" id="L218">    this.normZ = z;</span>
-<span class="nc" id="L219"></span>
-<span class="nc" id="L220">    if (!(z &gt; 0.0)) {</span>
-<span class="fc" id="L221">      // Window captures (numerically) no mass: become a point-mass at the</span>
-<span class="fc" id="L222">      // rounded mean, clamped to [lower, upper].</span>
-<span class="fc" id="L223">      this.degenerate = true;</span>
-<span class="fc" id="L224">      int k = (int) Math.rint(meanParam);</span>
-<span class="fc" id="L225">      if (k &lt; lower) k = lower;</span>
-      if (k &gt; upper) k = upper;
-<span class="fc" id="L227">      this.degenerateValue = k;</span>
-      this.meanCached = k;
-      this.varianceCached = 0.0;
-    } else {
-      this.degenerate = false;
-      this.degenerateValue = (int) Math.rint(meanParam);
-      double[] mv = computeTruncatedMoments(lower, upper, z);
-      this.meanCached = mv[0];
-      this.varianceCached = mv[1];
+    // Normalization mass over the truncated support:
+    // Z = P(Y in [lower, upper]) = Φ(upper+0.5) - Φ(lower-0.5)
+<span class="fc" id="L215">    double zUpper = normalCdf(upper + 0.5);</span>
+<span class="fc" id="L216">    double zLower = normalCdf(lower - 0.5);</span>
+<span class="fc" id="L217">    double z = zUpper - zLower;</span>
+<span class="fc" id="L218">    this.normZ = z;</span>
+
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">    if (!(z &gt; 0.0)) {</span>
+      // Window captures (numerically) no mass: become a point-mass at the
+      // rounded mean, clamped to [lower, upper].
+<span class="nc" id="L223">      this.degenerate = true;</span>
+<span class="nc" id="L224">      int k = (int) Math.rint(meanParam);</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">      if (k &lt; lower) k = lower;</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">      if (k &gt; upper) k = upper;</span>
+<span class="nc" id="L227">      this.degenerateValue = k;</span>
+<span class="nc" id="L228">      this.meanCached = k;</span>
+<span class="nc" id="L229">      this.varianceCached = 0.0;</span>
+<span class="nc" id="L230">    } else {</span>
+<span class="fc" id="L231">      this.degenerate = false;</span>
+<span class="fc" id="L232">      this.degenerateValue = (int) Math.rint(meanParam);</span>
+<span class="fc" id="L233">      double[] mv = computeTruncatedMoments(lower, upper, z);</span>
+<span class="fc" id="L234">      this.meanCached = mv[0];</span>
+<span class="fc" id="L235">      this.varianceCached = mv[1];</span>
     }
-  }
+<span class="fc" id="L237">  }</span>
 
   // ---------- API (DiscreteDistribution) ----------
 
   /**
-<span class="pc bpc" id="L242" title="1 of 2 branches missed.">   * Draws a single sample {@code Y} from this distribution.</span>
+   * Draws a single sample {@code Y} from this distribution.
    *
    * &lt;p&gt;For untruncated distributions, this value can be any integer (with quickly decaying tails).
    * For truncated distributions, the result is guaranteed to lie in {@code [lower, upper]}.
-<span class="fc" id="L246">   *</span>
-<span class="fc" id="L247">   * @return a random integer variate</span>
-<span class="fc bfc" id="L248" title="All 6 branches covered.">   */</span>
-<span class="fc" id="L249">  @Override</span>
+   *
+   * @return a random integer variate
+   */
+  @Override
   public int sample() {
-    if (degenerate) return degenerateValue;
-<span class="fc" id="L252"></span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">    if (degenerate) return degenerateValue;</span>
+
     while (true) {
       // Draw a Normal(mean, sigma^2)
-      double g = meanParam + sigma * nextGaussian();
-      int y = (int) Math.rint(g); // nearest-even rounding
-      if (!truncated || (y &gt;= lower &amp;&amp; y &lt;= upper)) {
-        return y;
+<span class="fc" id="L255">      double g = meanParam + sigma * nextGaussian();</span>
+<span class="fc" id="L256">      int y = (int) Math.rint(g); // nearest-even rounding</span>
+<span class="fc bfc" id="L257" title="All 6 branches covered.">      if (!truncated || (y &gt;= lower &amp;&amp; y &lt;= upper)) {</span>
+<span class="fc" id="L258">        return y;</span>
       }
       // else reject and resample
-    }
+<span class="fc" id="L261">    }</span>
   }
-<span class="pc bpc" id="L263" title="1 of 2 branches missed."></span>
-<span class="nc bnc" id="L264" title="All 2 branches missed.">  /**</span>
+
+  /**
    * Returns the probability mass at {@code k}, i.e., {@code P(Y = k)}.
-<span class="pc bpc" id="L266" title="2 of 6 branches missed.">   *</span>
+   *
    * @param k integer at which to evaluate the PMF
-<span class="fc" id="L268">   * @return the probability mass at {@code k} (zero if truncated and {@code k} is outside the</span>
-<span class="fc bfc" id="L269" title="All 2 branches covered.">   *     bounds)</span>
+   * @return the probability mass at {@code k} (zero if truncated and {@code k} is outside the
+   *     bounds)
    */
   @Override
   public double pmf(int k) {
-    if (degenerate) {
-      return (k == degenerateValue) ? 1.0 : 0.0;
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">    if (degenerate) {</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">      return (k == degenerateValue) ? 1.0 : 0.0;</span>
     }
-    if (truncated &amp;&amp; (k &lt; lower || k &gt; upper)) return 0.0;
+<span class="pc bpc" id="L276" title="2 of 6 branches missed.">    if (truncated &amp;&amp; (k &lt; lower || k &gt; upper)) return 0.0;</span>
 
-    double p = pmfUntruncated(k);
-    return truncated ? p / normZ : p;
-<span class="pc bpc" id="L280" title="1 of 2 branches missed.">  }</span>
-<span class="nc bnc" id="L281" title="All 2 branches missed."></span>
-  /**
-<span class="fc bfc" id="L283" title="All 2 branches covered.">   * Returns the cumulative distribution function at {@code k}, i.e., {@code P(Y ≤ k)}.</span>
-   *
-<span class="pc bpc" id="L285" title="1 of 2 branches missed.">   * @param k integer at which to evaluate the CDF</span>
-<span class="fc bfc" id="L286" title="All 2 branches covered.">   * @return the cumulative probability at {@code k}</span>
-   */
-  @Override
-<span class="fc" id="L289">  public double cdf(int k) {</span>
-<span class="fc" id="L290">    if (degenerate) {</span>
-      return (k &lt; degenerateValue) ? 0.0 : 1.0;
-    }
-    if (!truncated) return cdfUntruncated(k);
-
-    if (k &lt; lower - 1) return 0.0;
-    if (k &gt;= upper) return 1.0;
-
-    // For truncated: (Φ(k+0.5) - Φ(lower-0.5)) / Z
-    double num = normalCdf(k + 0.5) - normalCdf(lower - 0.5);
-    return num / normZ;
+<span class="fc" id="L278">    double p = pmfUntruncated(k);</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">    return truncated ? p / normZ : p;</span>
   }
 
-<span class="fc" id="L303">  /**</span>
+  /**
+   * Returns the cumulative distribution function at {@code k}, i.e., {@code P(Y ≤ k)}.
+   *
+   * @param k integer at which to evaluate the CDF
+   * @return the cumulative probability at {@code k}
+   */
+  @Override
+  public double cdf(int k) {
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">    if (degenerate) {</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">      return (k &lt; degenerateValue) ? 0.0 : 1.0;</span>
+    }
+<span class="fc bfc" id="L293" title="All 2 branches covered.">    if (!truncated) return cdfUntruncated(k);</span>
+
+<span class="pc bpc" id="L295" title="1 of 2 branches missed.">    if (k &lt; lower - 1) return 0.0;</span>
+<span class="fc bfc" id="L296" title="All 2 branches covered.">    if (k &gt;= upper) return 1.0;</span>
+
+    // For truncated: (Φ(k+0.5) - Φ(lower-0.5)) / Z
+<span class="fc" id="L299">    double num = normalCdf(k + 0.5) - normalCdf(lower - 0.5);</span>
+<span class="fc" id="L300">    return num / normZ;</span>
+  }
+
+  /**
    * Returns the distribution mean (expected value).
    *
    * &lt;p&gt;For the rounded-normal, this is close to {@code mean}, with a tiny quantization effect. For
@@ -310,10 +310,10 @@ public final class NormalInt implements DiscreteDistribution {
    */
   @Override
   public double mean() {
-    return meanCached;
+<span class="fc" id="L313">    return meanCached;</span>
   }
 
-<span class="fc" id="L316">  /**</span>
+  /**
    * Returns the distribution variance.
    *
    * &lt;p&gt;For the rounded-normal, this is close to {@code sigma^2} plus a small quantization effect.
@@ -323,53 +323,53 @@ public final class NormalInt implements DiscreteDistribution {
    */
   @Override
   public double variance() {
-    return varianceCached;
+<span class="fc" id="L326">    return varianceCached;</span>
   }
-<span class="fc bfc" id="L328" title="All 2 branches covered."></span>
-<span class="fc" id="L329">  /**</span>
+
+  /**
    * Reports the mathematical support (domain) of this distribution.
    *
    * &lt;p&gt;For untruncated instances the support is the unbounded integer line. For truncated instances
-<span class="fc" id="L333">   * it is the closed interval {@code [lower, upper]}.</span>
+   * it is the closed interval {@code [lower, upper]}.
    *
    * @return a {@link DistributionSupport} describing the support (discrete)
    */
   public DistributionSupport support() {
-    if (!truncated) {
-      return DistributionSupport.discrete(
+<span class="fc bfc" id="L338" title="All 2 branches covered.">    if (!truncated) {</span>
+<span class="fc" id="L339">      return DistributionSupport.discrete(</span>
           Double.NEGATIVE_INFINITY, false,
           Double.POSITIVE_INFINITY, false);
     }
-    return DistributionSupport.discrete(lower, true, upper, true);
+<span class="fc" id="L343">    return DistributionSupport.discrete(lower, true, upper, true);</span>
   }
 
-<span class="fc bfc" id="L346" title="All 2 branches covered.">  // ---------- Internal helpers ----------</span>
-<span class="fc bfc" id="L347" title="All 4 branches covered."></span>
-<span class="fc" id="L348">  /**</span>
+  // ---------- Internal helpers ----------
+
+  /**
    * Validates constructor parameters.
-<span class="fc" id="L350">   *</span>
+   *
    * @param mean the mean parameter (finite)
    * @param sigma the standard deviation parameter (finite and {@code &gt; 0})
    * @throws IllegalArgumentException if parameters are invalid
    */
   private static void validateParams(double mean, double sigma) {
-    if (!Double.isFinite(mean)) throw new IllegalArgumentException(&quot;mean must be finite&quot;);
-    if (!Double.isFinite(sigma) || !(sigma &gt; 0.0)) {
-      throw new IllegalArgumentException(&quot;sigma must be finite and &gt; 0&quot;);
-<span class="fc" id="L359">    }</span>
+<span class="fc bfc" id="L356" title="All 2 branches covered.">    if (!Double.isFinite(mean)) throw new IllegalArgumentException(&quot;mean must be finite&quot;);</span>
+<span class="fc bfc" id="L357" title="All 4 branches covered.">    if (!Double.isFinite(sigma) || !(sigma &gt; 0.0)) {</span>
+<span class="fc" id="L358">      throw new IllegalArgumentException(&quot;sigma must be finite and &gt; 0&quot;);</span>
+    }
 <span class="fc" id="L360">  }</span>
-<span class="fc" id="L361"></span>
-<span class="pc bpc" id="L362" title="1 of 2 branches missed.">  /**</span>
+
+  /**
    * PMF for the &lt;em&gt;untruncated&lt;/em&gt; rounded-normal at integer {@code k}.
    *
    * @param k integer support point
    * @return {@code P(Y = k)} before any truncation is applied
    */
   private double pmfUntruncated(int k) {
-    double a = normalCdf(k + 0.5);
-    double b = normalCdf(k - 0.5);
-    double p = a - b;
-<span class="fc" id="L372">    return (p &lt;= 0.0) ? 0.0 : p; // guard against tiny negatives from roundoff</span>
+<span class="fc" id="L369">    double a = normalCdf(k + 0.5);</span>
+<span class="fc" id="L370">    double b = normalCdf(k - 0.5);</span>
+<span class="fc" id="L371">    double p = a - b;</span>
+<span class="pc bpc" id="L372" title="1 of 2 branches missed.">    return (p &lt;= 0.0) ? 0.0 : p; // guard against tiny negatives from roundoff</span>
   }
 
   /**
@@ -379,9 +379,9 @@ public final class NormalInt implements DiscreteDistribution {
    * @return {@code P(Y ≤ k)} before any truncation is applied
    */
   private double cdfUntruncated(int k) {
-    return normalCdf(k + 0.5);
-<span class="fc" id="L383">  }</span>
-<span class="fc" id="L384"></span>
+<span class="fc" id="L382">    return normalCdf(k + 0.5);</span>
+  }
+
   /**
    * Standard normal CDF {@code Φ(x)} using an {@code erf} approximation (no dependency on {@code
    * Math.erf} for broad JDK compatibility).
@@ -390,23 +390,23 @@ public final class NormalInt implements DiscreteDistribution {
    * @return {@code Φ(x)}
    */
   private double normalCdf(double x) {
-    double z = (x - meanParam) / sigma;
-    return 0.5 * (1.0 + erfApprox(z * INV_SQRT2));
-<span class="fc" id="L395">  }</span>
-<span class="fc" id="L396"></span>
-<span class="fc" id="L397">  /**</span>
-<span class="fc" id="L398">   * Approximation to {@code erf(x)} with max absolute error ≈ 1.5e−7.</span>
+<span class="fc" id="L393">    double z = (x - meanParam) / sigma;</span>
+<span class="fc" id="L394">    return 0.5 * (1.0 + erfApprox(z * INV_SQRT2));</span>
+  }
+
+  /**
+   * Approximation to {@code erf(x)} with max absolute error ≈ 1.5e−7.
    *
    * &lt;p&gt;From Abramowitz &amp;amp; Stegun 7.1.26 (Horner form).
    *
    * @param x input
-<span class="fc" id="L403">   * @return approximate {@code erf(x)}</span>
-<span class="fc" id="L404">   */</span>
+   * @return approximate {@code erf(x)}
+   */
   private static double erfApprox(double x) {
-    double sign = Math.signum(x);
-    double ax = Math.abs(x);
-    double t = 1.0 / (1.0 + 0.3275911 * ax);
-    double y =
+<span class="fc" id="L406">    double sign = Math.signum(x);</span>
+<span class="fc" id="L407">    double ax = Math.abs(x);</span>
+<span class="fc" id="L408">    double t = 1.0 / (1.0 + 0.3275911 * ax);</span>
+<span class="fc" id="L409">    double y =</span>
         1.0
             - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t
                     + 0.254829592)
@@ -414,90 +414,90 @@ public final class NormalInt implements DiscreteDistribution {
 <span class="fc" id="L414">                * Math.exp(-ax * ax);</span>
 <span class="fc" id="L415">    return sign * y;</span>
   }
-<span class="fc" id="L417"></span>
+
   /**
-<span class="fc bfc" id="L419" title="All 2 branches covered.">   * Computes mean and variance for the &lt;em&gt;untruncated&lt;/em&gt; rounded-normal by summing a wide window</span>
-<span class="fc" id="L420">   * of integer support (starting at {@code ±8σ} and expanding if tiny tail mass remains).</span>
-<span class="fc" id="L421">   *</span>
-<span class="fc" id="L422">   * @return array {@code [mean, variance]}</span>
-<span class="fc" id="L423">   */</span>
-  private double[] computeUntruncatedMoments() {
-    int a = (int) Math.floor(meanParam - 8.0 * sigma);
-<span class="fc" id="L426">    int b = (int) Math.ceil(meanParam + 8.0 * sigma);</span>
-<span class="pc bpc" id="L427" title="3 of 4 branches missed."></span>
-<span class="nc" id="L428">    double mass = 0.0, m1 = 0.0, m2 = 0.0;</span>
-<span class="nc" id="L429"></span>
-<span class="nc" id="L430">    for (int k = a; k &lt;= b; k++) {</span>
-<span class="nc" id="L431">      double p = pmfUntruncated(k);</span>
-<span class="nc" id="L432">      mass += p;</span>
-<span class="nc" id="L433">      m1 += p * k;</span>
-<span class="nc" id="L434">      m2 += p * (double) k * (double) k;</span>
-<span class="nc" id="L435">    }</span>
-
-<span class="pc bpc" id="L437" title="2 of 4 branches missed.">    int extend = 0;</span>
-<span class="nc" id="L438">    while (mass &lt; 1.0 - 1e-12 &amp;&amp; extend &lt; 32) {</span>
-<span class="nc" id="L439">      a -= 1;</span>
-      b += 1;
-<span class="fc" id="L441">      double pLeft = pmfUntruncated(a);</span>
-<span class="pc bpc" id="L442" title="1 of 2 branches missed.">      double pRight = pmfUntruncated(b);</span>
-<span class="fc" id="L443">      mass += pLeft + pRight;</span>
-      m1 += pLeft * a + pRight * b;
-      m2 += pLeft * (double) a * (double) a + pRight * (double) b * (double) b;
-      extend++;
-    }
-
-    if (mass &gt; 0.0 &amp;&amp; Math.abs(1.0 - mass) &gt; 1e-15) {
-      m1 /= mass;
-      m2 /= mass;
-    }
-    double var = m2 - m1 * m1;
-    if (var &lt; 0.0) var = 0.0; // numeric guard
-    return new double[] {m1, var};
-<span class="fc" id="L456">  }</span>
-<span class="fc bfc" id="L457" title="All 2 branches covered."></span>
-<span class="fc" id="L458">  /**</span>
-<span class="fc" id="L459">   * Computes mean and variance for the &lt;em&gt;truncated&lt;/em&gt; rounded-normal by summing exactly over</span>
-<span class="fc" id="L460">   * {@code k = lower..upper} with the renormalization constant {@code Z}.</span>
+   * Computes mean and variance for the &lt;em&gt;untruncated&lt;/em&gt; rounded-normal by summing a wide window
+   * of integer support (starting at {@code ±8σ} and expanding if tiny tail mass remains).
    *
-<span class="fc" id="L462">   * @param lower inclusive lower bound</span>
-<span class="pc bpc" id="L463" title="1 of 2 branches missed.">   * @param upper inclusive upper bound</span>
-<span class="fc" id="L464">   * @param z renormalization constant {@code Z = P(lower ≤ Y ≤ upper)}</span>
+   * @return array {@code [mean, variance]}
+   */
+  private double[] computeUntruncatedMoments() {
+<span class="fc" id="L425">    int a = (int) Math.floor(meanParam - 8.0 * sigma);</span>
+<span class="fc" id="L426">    int b = (int) Math.ceil(meanParam + 8.0 * sigma);</span>
+
+<span class="fc" id="L428">    double mass = 0.0, m1 = 0.0, m2 = 0.0;</span>
+
+<span class="fc bfc" id="L430" title="All 2 branches covered.">    for (int k = a; k &lt;= b; k++) {</span>
+<span class="fc" id="L431">      double p = pmfUntruncated(k);</span>
+<span class="fc" id="L432">      mass += p;</span>
+<span class="fc" id="L433">      m1 += p * k;</span>
+<span class="fc" id="L434">      m2 += p * (double) k * (double) k;</span>
+    }
+
+<span class="fc" id="L437">    int extend = 0;</span>
+<span class="pc bpc" id="L438" title="3 of 4 branches missed.">    while (mass &lt; 1.0 - 1e-12 &amp;&amp; extend &lt; 32) {</span>
+<span class="nc" id="L439">      a -= 1;</span>
+<span class="nc" id="L440">      b += 1;</span>
+<span class="nc" id="L441">      double pLeft = pmfUntruncated(a);</span>
+<span class="nc" id="L442">      double pRight = pmfUntruncated(b);</span>
+<span class="nc" id="L443">      mass += pLeft + pRight;</span>
+<span class="nc" id="L444">      m1 += pLeft * a + pRight * b;</span>
+<span class="nc" id="L445">      m2 += pLeft * (double) a * (double) a + pRight * (double) b * (double) b;</span>
+<span class="nc" id="L446">      extend++;</span>
+<span class="nc" id="L447">    }</span>
+
+<span class="pc bpc" id="L449" title="2 of 4 branches missed.">    if (mass &gt; 0.0 &amp;&amp; Math.abs(1.0 - mass) &gt; 1e-15) {</span>
+<span class="nc" id="L450">      m1 /= mass;</span>
+<span class="nc" id="L451">      m2 /= mass;</span>
+    }
+<span class="fc" id="L453">    double var = m2 - m1 * m1;</span>
+<span class="pc bpc" id="L454" title="1 of 2 branches missed.">    if (var &lt; 0.0) var = 0.0; // numeric guard</span>
+<span class="fc" id="L455">    return new double[] {m1, var};</span>
+  }
+
+  /**
+   * Computes mean and variance for the &lt;em&gt;truncated&lt;/em&gt; rounded-normal by summing exactly over
+   * {@code k = lower..upper} with the renormalization constant {@code Z}.
+   *
+   * @param lower inclusive lower bound
+   * @param upper inclusive upper bound
+   * @param z renormalization constant {@code Z = P(lower ≤ Y ≤ upper)}
    * @return array {@code [mean, variance]}
    */
   private double[] computeTruncatedMoments(int lower, int upper, double z) {
-    double m1 = 0.0, m2 = 0.0;
-    for (int k = lower; k &lt;= upper; k++) {
-      double p = pmfUntruncated(k) / z;
-      m1 += p * k;
-      m2 += p * (double) k * (double) k;
+<span class="fc" id="L468">    double m1 = 0.0, m2 = 0.0;</span>
+<span class="fc bfc" id="L469" title="All 2 branches covered.">    for (int k = lower; k &lt;= upper; k++) {</span>
+<span class="fc" id="L470">      double p = pmfUntruncated(k) / z;</span>
+<span class="fc" id="L471">      m1 += p * k;</span>
+<span class="fc" id="L472">      m2 += p * (double) k * (double) k;</span>
     }
-<span class="fc bfc" id="L474" title="All 2 branches covered.">    double var = m2 - m1 * m1;</span>
-<span class="fc" id="L475">    if (var &lt; 0.0) var = 0.0;</span>
+<span class="fc" id="L474">    double var = m2 - m1 * m1;</span>
+<span class="pc bpc" id="L475" title="1 of 2 branches missed.">    if (var &lt; 0.0) var = 0.0;</span>
 <span class="fc" id="L476">    return new double[] {m1, var};</span>
   }
 
   /**
-<span class="fc" id="L480">   * Draws a standard {@code Normal(0,1)} using the Marsaglia polar method, with a cached &quot;spare&quot;</span>
-<span class="fc" id="L481">   * sample so every other call is essentially free.</span>
-<span class="fc" id="L482">   *</span>
-<span class="pc bpc" id="L483" title="1 of 4 branches missed.">   * @return a standard normal sample</span>
+   * Draws a standard {@code Normal(0,1)} using the Marsaglia polar method, with a cached &quot;spare&quot;
+   * sample so every other call is essentially free.
+   *
+   * @return a standard normal sample
    */
-<span class="fc" id="L485">  private double nextGaussian() {</span>
-<span class="fc" id="L486">    if (haveSpare) {</span>
+  private double nextGaussian() {
+<span class="fc bfc" id="L486" title="All 2 branches covered.">    if (haveSpare) {</span>
 <span class="fc" id="L487">      haveSpare = false;</span>
 <span class="fc" id="L488">      return spare;</span>
     }
     double u, v, s;
     do {
-      u = 2.0 * rng.nextDouble() - 1.0; // (-1,1)
-      v = 2.0 * rng.nextDouble() - 1.0; // (-1,1)
-      s = u * u + v * v;
-    } while (s &gt;= 1.0 || s == 0.0);
+<span class="fc" id="L492">      u = 2.0 * rng.nextDouble() - 1.0; // (-1,1)</span>
+<span class="fc" id="L493">      v = 2.0 * rng.nextDouble() - 1.0; // (-1,1)</span>
+<span class="fc" id="L494">      s = u * u + v * v;</span>
+<span class="pc bpc" id="L495" title="1 of 4 branches missed.">    } while (s &gt;= 1.0 || s == 0.0);</span>
 
-    double mul = Math.sqrt(-2.0 * Math.log(s) / s);
-    spare = v * mul;
-    haveSpare = true;
-    return u * mul;
+<span class="fc" id="L497">    double mul = Math.sqrt(-2.0 * Math.log(s) / s);</span>
+<span class="fc" id="L498">    spare = v * mul;</span>
+<span class="fc" id="L499">    haveSpare = true;</span>
+<span class="fc" id="L500">    return u * mul;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
