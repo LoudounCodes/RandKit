@@ -3,12 +3,7 @@
 Lightweight random-variate generation for Java 17+.
 Built on the JDK’s `java.util.random.RandomGenerator`, with a tiny, predictable API.
 
-* **Docs / Javadoc:** `docs/javadoc/` (if you’re viewing this on GitHub Pages: `/javadoc/`)
-* **Packages:**
-  `org.loudouncodes.randkit.api` – public interfaces
-  `org.loudouncodes.randkit.continuous` – continuous distributions
-  `org.loudouncodes.randkit.discrete` – discrete distributions
-  `org.loudouncodes.randkit.util` – RNG utilities
+[Project doumentation, javadocs, and build reports](https://loudouncodes.github.io/RandKit/)
 
 ---
 
