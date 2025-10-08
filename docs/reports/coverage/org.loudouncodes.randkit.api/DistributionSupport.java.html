@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DistributionSupport.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">randkit</a> &gt; <a href="index.source.html" class="el_package">org.loudouncodes.randkit.api</a> &gt; <span class="el_source">DistributionSupport.java</span></div><h1>DistributionSupport.java</h1><pre class="source lang-java linenums">package org.loudouncodes.randkit.api;
+
+/**
+ * Describes the mathematical support (domain) of a probability distribution: numeric lower/upper
+ * bounds, whether each bound is closed (inclusive) or open (exclusive), and whether values are
+ * treated as continuous reals or discrete integers.
+ *
+ * &lt;p&gt;Typical examples:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;Normal: {@code (-∞, +∞)} continuous
+ *   &lt;li&gt;Exponential: {@code [0, +∞)} continuous
+ *   &lt;li&gt;Poisson: {@code {0,1,2,...}} discrete
+ *   &lt;li&gt;Beta: {@code (0,1)} continuous (open interval)
+ * &lt;/ul&gt;
+ */
+public final class DistributionSupport {
+
+  /** Indicates whether the distribution's values are continuous reals or discrete integers. */
+<span class="fc" id="L20">  public enum Kind {</span>
+    /** Continuous, real-valued support. */
+<span class="fc" id="L22">    CONTINUOUS,</span>
+    /** Discrete, integer-valued support. */
+<span class="fc" id="L24">    DISCRETE</span>
+  }
+
+  private final double lower;
+  private final double upper;
+  private final boolean lowerClosed;
+  private final boolean upperClosed;
+  private final Kind kind;
+
+  /**
+   * Creates a new support descriptor.
+   *
+   * @param lower the numeric lower bound, or {@link Double#NEGATIVE_INFINITY} for unbounded below
+   * @param lowerClosed {@code true} if the lower bound is included (closed); ignored if unbounded
+   *     below
+   * @param upper the numeric upper bound, or {@link Double#POSITIVE_INFINITY} for unbounded above
+   * @param upperClosed {@code true} if the upper bound is included (closed); ignored if unbounded
+   *     above
+   * @param kind whether values are continuous reals or discrete integers
+   * @throws IllegalArgumentException if finite bounds are not strictly ordered ({@code lower &lt;
+   *     upper})
+   */
+  private DistributionSupport(
+<span class="fc" id="L47">      double lower, boolean lowerClosed, double upper, boolean upperClosed, Kind kind) {</span>
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">    if (!Double.isFinite(lower) &amp;&amp; lower != Double.NEGATIVE_INFINITY) {</span>
+<span class="nc" id="L49">      throw new IllegalArgumentException(&quot;lower must be finite or -Infinity&quot;);</span>
+    }
+<span class="pc bpc" id="L51" title="1 of 4 branches missed.">    if (!Double.isFinite(upper) &amp;&amp; upper != Double.POSITIVE_INFINITY) {</span>
+<span class="nc" id="L52">      throw new IllegalArgumentException(&quot;upper must be finite or +Infinity&quot;);</span>
+    }
+<span class="fc bfc" id="L54" title="All 6 branches covered.">    if (Double.isFinite(lower) &amp;&amp; Double.isFinite(upper) &amp;&amp; !(lower &lt; upper)) {</span>
+<span class="fc" id="L55">      throw new IllegalArgumentException(&quot;lower must be strictly less than upper&quot;);</span>
+    }
+<span class="fc" id="L57">    this.lower = lower;</span>
+<span class="fc" id="L58">    this.upper = upper;</span>
+<span class="fc" id="L59">    this.lowerClosed = lowerClosed;</span>
+<span class="fc" id="L60">    this.upperClosed = upperClosed;</span>
+<span class="fc" id="L61">    this.kind = kind;</span>
+<span class="fc" id="L62">  }</span>
+
+  /**
+   * Returns the numeric lower bound.
+   *
+   * @return the lower bound, or {@link Double#NEGATIVE_INFINITY} if unbounded below
+   */
+  public double lower() {
+<span class="fc" id="L70">    return lower;</span>
+  }
+
+  /**
+   * Returns the numeric upper bound.
+   *
+   * @return the upper bound, or {@link Double#POSITIVE_INFINITY} if unbounded above
+   */
+  public double upper() {
+<span class="fc" id="L79">    return upper;</span>
+  }
+
+  /**
+   * Indicates whether the lower bound is included in the support (closed). Ignored when the support
+   * is unbounded below.
+   *
+   * @return {@code true} if the lower bound is closed; {@code false} otherwise
+   */
+  public boolean isLowerClosed() {
+<span class="fc" id="L89">    return lowerClosed;</span>
+  }
+
+  /**
+   * Indicates whether the upper bound is included in the support (closed). Ignored when the support
+   * is unbounded above.
+   *
+   * @return {@code true} if the upper bound is closed; {@code false} otherwise
+   */
+  public boolean isUpperClosed() {
+<span class="fc" id="L99">    return upperClosed;</span>
+  }
+
+  /**
+   * Returns whether the support is unbounded below.
+   *
+   * @return {@code true} if the lower bound is {@link Double#NEGATIVE_INFINITY}; otherwise {@code
+   *     false}
+   */
+  public boolean isUnboundedBelow() {
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    return lower == Double.NEGATIVE_INFINITY;</span>
+  }
+
+  /**
+   * Returns whether the support is unbounded above.
+   *
+   * @return {@code true} if the upper bound is {@link Double#POSITIVE_INFINITY}; otherwise {@code
+   *     false}
+   */
+  public boolean isUnboundedAbove() {
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    return upper == Double.POSITIVE_INFINITY;</span>
+  }
+
+  /**
+   * Returns the value kind (continuous or discrete).
+   *
+   * @return the support kind
+   */
+  public Kind kind() {
+<span class="fc" id="L128">    return kind;</span>
+  }
+
+  /**
+   * Tests whether a numeric value lies within this support's interval, respecting open/closed
+   * endpoints. For discrete supports, this method checks only the numeric interval; it does not
+   * require {@code x} to be an integer.
+   *
+   * @param x the value to test
+   * @return {@code true} if {@code x} lies in the support; {@code false} otherwise
+   */
+  public boolean contains(double x) {
+<span class="fc bfc" id="L140" title="All 8 branches covered.">    boolean aboveLower = isUnboundedBelow() || (lowerClosed ? x &gt;= lower : x &gt; lower);</span>
+<span class="fc bfc" id="L141" title="All 8 branches covered.">    boolean belowUpper = isUnboundedAbove() || (upperClosed ? x &lt;= upper : x &lt; upper);</span>
+<span class="fc bfc" id="L142" title="All 4 branches covered.">    return aboveLower &amp;&amp; belowUpper;</span>
+  }
+
+  /**
+   * Creates a continuous (real-valued) support with the given bounds.
+   *
+   * @param lower the lower bound, or {@link Double#NEGATIVE_INFINITY} for unbounded below
+   * @param lowerClosed {@code true} if the lower bound is closed (included)
+   * @param upper the upper bound, or {@link Double#POSITIVE_INFINITY} for unbounded above
+   * @param upperClosed {@code true} if the upper bound is closed (included)
+   * @return a continuous {@code DistributionSupport}
+   */
+  public static DistributionSupport continuous(
+      double lower, boolean lowerClosed, double upper, boolean upperClosed) {
+<span class="fc" id="L156">    return new DistributionSupport(lower, lowerClosed, upper, upperClosed, Kind.CONTINUOUS);</span>
+  }
+
+  /**
+   * Creates a discrete (integer-valued) support with the given bounds.
+   *
+   * @param lower the lower bound, or {@link Double#NEGATIVE_INFINITY} for unbounded below
+   * @param lowerClosed {@code true} if the lower bound is closed (included)
+   * @param upper the upper bound, or {@link Double#POSITIVE_INFINITY} for unbounded above
+   * @param upperClosed {@code true} if the upper bound is closed (included)
+   * @return a discrete {@code DistributionSupport}
+   */
+  public static DistributionSupport discrete(
+      double lower, boolean lowerClosed, double upper, boolean upperClosed) {
+<span class="fc" id="L170">    return new DistributionSupport(lower, lowerClosed, upper, upperClosed, Kind.DISCRETE);</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public String toString() {
+<span class="pc bpc" id="L176" title="2 of 4 branches missed.">    String l = isUnboundedBelow() ? &quot;(-Inf&quot; : (lowerClosed ? &quot;[&quot; + lower : &quot;(&quot; + lower);</span>
+<span class="pc bpc" id="L177" title="3 of 4 branches missed.">    String r = isUnboundedAbove() ? &quot;+Inf)&quot; : (upperClosed ? upper + &quot;]&quot; : upper + &quot;)&quot;);</span>
+<span class="fc" id="L178">    return &quot;Support&quot; + l + &quot;, &quot; + r + &quot; &quot; + kind + &quot;)&quot;;</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public int hashCode() {
+<span class="fc" id="L184">    int h = 17;</span>
+<span class="fc" id="L185">    long a = Double.doubleToLongBits(lower);</span>
+<span class="fc" id="L186">    long b = Double.doubleToLongBits(upper);</span>
+<span class="fc" id="L187">    h = 31 * h + (int) (a ^ (a &gt;&gt;&gt; 32));</span>
+<span class="fc" id="L188">    h = 31 * h + (int) (b ^ (b &gt;&gt;&gt; 32));</span>
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">    h = 31 * h + (lowerClosed ? 1 : 0);</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">    h = 31 * h + (upperClosed ? 1 : 0);</span>
+<span class="fc" id="L191">    h = 31 * h + kind.hashCode();</span>
+<span class="fc" id="L192">    return h;</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean equals(Object o) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">    if (this == o) return true;</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">    if (!(o instanceof DistributionSupport)) return false;</span>
+<span class="fc" id="L200">    DistributionSupport d = (DistributionSupport) o;</span>
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">    return Double.doubleToLongBits(lower) == Double.doubleToLongBits(d.lower)</span>
+<span class="pc bpc" id="L202" title="3 of 8 branches missed.">        &amp;&amp; Double.doubleToLongBits(upper) == Double.doubleToLongBits(d.upper)</span>
+        &amp;&amp; lowerClosed == d.lowerClosed
+        &amp;&amp; upperClosed == d.upperClosed
+        &amp;&amp; kind == d.kind;
+  }
+
+  /* ---------- Common presets ---------- */
+
+  /** Real line {@code (-∞, +∞)}, continuous. */
+<span class="fc" id="L211">  public static final DistributionSupport REAL_LINE =</span>
+<span class="fc" id="L212">      continuous(Double.NEGATIVE_INFINITY, false, Double.POSITIVE_INFINITY, false);</span>
+
+  /** Non-negative reals {@code [0, +∞)}, continuous. */
+<span class="fc" id="L215">  public static final DistributionSupport NON_NEGATIVE_REALS =</span>
+<span class="fc" id="L216">      continuous(0.0, true, Double.POSITIVE_INFINITY, false);</span>
+
+  /** Unit interval {@code (0, 1)}, continuous (open). */
+<span class="fc" id="L219">  public static final DistributionSupport UNIT_INTERVAL_OPEN = continuous(0.0, false, 1.0, false);</span>
+
+  /** Unit interval {@code [0, 1]}, continuous (closed). */
+<span class="fc" id="L222">  public static final DistributionSupport UNIT_INTERVAL_CLOSED = continuous(0.0, true, 1.0, true);</span>
+
+  /** Non-negative integers {@code {0,1,2,...}}, discrete. */
+<span class="fc" id="L225">  public static final DistributionSupport NON_NEGATIVE_INTEGERS =</span>
+<span class="fc" id="L226">      discrete(0.0, true, Double.POSITIVE_INFINITY, false);</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

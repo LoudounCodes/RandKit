@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UniformInt.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">randkit</a> &gt; <a href="index.source.html" class="el_package">org.loudouncodes.randkit.discrete</a> &gt; <span class="el_source">UniformInt.java</span></div><h1>UniformInt.java</h1><pre class="source lang-java linenums">package org.loudouncodes.randkit.discrete;
+
+import java.util.random.RandomGenerator;
+import org.loudouncodes.randkit.api.DiscreteDistribution;
+import org.loudouncodes.randkit.api.DistributionSupport;
+import org.loudouncodes.randkit.util.Randoms;
+
+/**
+ * Discrete Uniform distribution on the closed integer interval {@code [a, b]} with {@code a ≤ b}.
+ *
+ * &lt;p&gt;PMF: {@code P(X = k) = 1 / (b - a + 1)} for {@code k ∈ [a, b]}, else 0.&lt;br&gt;
+ * CDF: {@code F(k) = 0} for {@code k &lt; a}; {@code (k - a + 1)/(b - a + 1)} for {@code a ≤ k ≤ b};
+ * and {@code 1} for {@code k &gt; b}.&lt;br&gt;
+ * Mean: {@code (a + b) / 2}. Variance: {@code ((n^2 - 1) / 12)}, where {@code n = b - a + 1}.
+ */
+public final class UniformInt implements DiscreteDistribution {
+
+  private final RandomGenerator rng;
+  private final int a;
+  private final int b;
+  private final long n; // cardinality = (b - a + 1) as long to avoid overflow
+  private final double pmf; // 1.0 / n, cached
+  private final double mean;
+  private final double variance;
+
+  /**
+   * Constructs a UniformInt(a, b) using a platform-provided, high-quality default RNG.
+   *
+   * @param a inclusive lower bound
+   * @param b inclusive upper bound; must satisfy {@code a ≤ b}
+   * @throws IllegalArgumentException if {@code a &gt; b}
+   */
+  public UniformInt(int a, int b) {
+<span class="fc" id="L34">    this(Randoms.defaultGenerator(), a, b);</span>
+<span class="fc" id="L35">  }</span>
+
+  /**
+   * Constructs a UniformInt(a, b) with a deterministic seed.
+   *
+   * @param seed random seed for reproducibility
+   * @param a inclusive lower bound
+   * @param b inclusive upper bound; must satisfy {@code a ≤ b}
+   * @throws IllegalArgumentException if {@code a &gt; b}
+   */
+  public UniformInt(long seed, int a, int b) {
+<span class="fc" id="L46">    this(Randoms.seeded(seed), a, b);</span>
+<span class="fc" id="L47">  }</span>
+
+  /**
+   * Constructs a UniformInt(a, b) using the provided generator.
+   *
+   * @param rng non-null random generator
+   * @param a inclusive lower bound
+   * @param b inclusive upper bound; must satisfy {@code a ≤ b}
+   * @throws NullPointerException if {@code rng} is null
+   * @throws IllegalArgumentException if {@code a &gt; b}
+   */
+<span class="fc" id="L58">  public UniformInt(RandomGenerator rng, int a, int b) {</span>
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">    if (rng == null) throw new NullPointerException(&quot;rng must not be null&quot;);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">    if (a &gt; b) throw new IllegalArgumentException(&quot;Require a ≤ b (got a=&quot; + a + &quot;, b=&quot; + b + &quot;)&quot;);</span>
+<span class="fc" id="L61">    this.rng = rng;</span>
+<span class="fc" id="L62">    this.a = a;</span>
+<span class="fc" id="L63">    this.b = b;</span>
+
+    // cardinality in long to avoid overflow when b - a == Integer.MAX_VALUE
+<span class="fc" id="L66">    this.n = ((long) b - (long) a) + 1L;</span>
+
+<span class="fc" id="L68">    this.pmf = 1.0 / (double) n;</span>
+<span class="fc" id="L69">    this.mean = 0.5 * ((double) a + (double) b);</span>
+
+    // variance = (n^2 - 1) / 12 for discrete uniform on [a,b]
+<span class="fc" id="L72">    double nn = (double) n;</span>
+<span class="fc" id="L73">    this.variance = (nn * nn - 1.0) / 12.0;</span>
+<span class="fc" id="L74">  }</span>
+
+  /** {@inheritDoc} */
+  @Override
+  public int sample() {
+<span class="fc" id="L79">    long r = rng.nextLong(n); // unbiased [0, n)</span>
+<span class="fc" id="L80">    long val = ((long) a) + r; // shift to [a, b]</span>
+<span class="fc" id="L81">    return (int) val;</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public double pmf(int k) {
+<span class="fc bfc" id="L87" title="All 4 branches covered.">    return (k &gt;= a &amp;&amp; k &lt;= b) ? pmf : 0.0;</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public double cdf(int k) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (k &lt; a) return 0.0;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (k &gt;= b) return 1.0;</span>
+<span class="fc" id="L95">    long count = ((long) k - (long) a) + 1L;</span>
+<span class="fc" id="L96">    return ((double) count) / ((double) n);</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public double mean() {
+<span class="fc" id="L102">    return mean;</span>
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public double variance() {
+<span class="fc" id="L108">    return variance;</span>
+  }
+
+  /**
+   * Returns the mathematical support of this distribution: the closed interval [a, b] (discrete).
+   *
+   * @return a {@link DistributionSupport} describing {@code [a, b]}
+   */
+  public DistributionSupport support() {
+<span class="fc" id="L117">    return DistributionSupport.discrete(a, /* lowerClosed= */ true, b, /* upperClosed= */ true);</span>
+  }
+
+  /**
+   * The inclusive lower bound {@code a}.
+   *
+   * @return the lower bound value {@code a}
+   */
+  public int lowerBound() {
+<span class="nc" id="L126">    return a;</span>
+  }
+
+  /**
+   * The inclusive upper bound {@code b}.
+   *
+   * @return the upper bound value {@code b}
+   */
+  public int upperBound() {
+<span class="nc" id="L135">    return b;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
